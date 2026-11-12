@@ -108,15 +108,20 @@ function buildSessions(logs) {
     const s=data.shifts[g.shift], first=localParts(g.first), mins=Number(first.hour)*60+Number(first.minute);
     const start=timeMinutes(s.start_time), end=timeMinutes(s.end_time), grace=Number(s.grace_minutes??5);
     const late=Math.max(0,mins-(start+grace));
-    const hasExit=g.acceptedPunches.length>=2;
-    const exitAt=hasExit?g.acceptedPunches[g.acceptedPunches.length-1]:null;
+    // Movement sequence inferred from consecutive accepted punches:
+    // 1=entry, 2=temporary exit, 3=return, 4=final exit, etc.
+    // An odd number of accepted punches means the employee's last event is an entry;
+    // an even number means the last event is an exit.
+    const punchCount=g.acceptedPunches.length;
+    const hasExit=punchCount>=2 && punchCount%2===0;
+    const exitAt=hasExit?g.acceptedPunches[punchCount-1]:null;
     const exitParts=exitAt?localParts(exitAt):null;
     const exitMinutes=exitParts?Number(exitParts.hour)*60+Number(exitParts.minute):null;
     const earlyDeparture=hasExit && exitMinutes<=end-30;
     const lateDeparture=hasExit && exitMinutes>end;
     const exitStatus=earlyDeparture?"انصراف مبكر":lateDeparture?"انصراف متأخر":"سجل انصراف";
-    const status=hasExit?(late>0?"متأخر + "+exitStatus:exitStatus):late>0?"متأخر - لم يسجل انصراف":"حاضر - لم يسجل انصراف";
-    return {...g,firstLocal:first,lastLocal:localParts(g.last),exitAt,exitParts,hasExit,earlyDeparture,lateDeparture,lateMinutes:late,status};
+    const status=hasExit?(late>0?"متأخر + "+exitStatus:exitStatus):late>0?"متأخر - لم يسجل انصراف":punchCount>=3?"عاد للعمل - لم يسجل الانصراف النهائي":"حاضر - لم يسجل انصراف";
+    return {...g,firstLocal:first,lastLocal:localParts(g.last),exitAt,exitParts,hasExit,earlyDeparture,lateDeparture,punchCount,lateMinutes:late,status};
   }).sort((a,b)=>(b.date+b.first).localeCompare(a.date+a.first));
 }
 function statusBadge(status){return String(status||"").includes("متأخر")||String(status||"").includes("انصراف مبكر")?'<span class="status late">'+esc(status)+'</span>':status==="حاضر"||status==="في الموعد"||status==="سجل انصراف"?'<span class="status ok">'+esc(status)+'</span>':'<span class="status neutral">'+esc(status||"—")+'</span>';}
