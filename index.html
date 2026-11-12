@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>نظام الحضور والانصراف - جمعية الراكة</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div><strong>نظام الحضور والانصراف</strong><small>جمعية الدعوة والإرشاد وتوعية الجاليات بالراكة</small></div>
+  <span id="current-date"></span>
+</header>
+<main class="container">
+  <section id="login-panel" class="panel login-panel">
+    <h1>تسجيل الدخول</h1>
+    <p>سجّل الدخول بالبريد الإلكتروني وكلمة المرور الخاصة بحسابك.</p>
+    <form id="login-form">
+      <label for="email">البريد الإلكتروني</label>
+      <input id="email" type="email" autocomplete="username" required>
+      <label for="password">كلمة المرور</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <button type="submit">دخول</button>
+      <p id="login-message" role="status"></p>
+    </form>
+  </section>
+  <section id="dashboard" hidden>
+    <div class="welcome panel">
+      <div><h1 id="welcome-title">لوحة التحكم</h1><p>جميع التوقيتات معروضة بتوقيت المملكة العربية السعودية.</p></div>
+      <button id="logout-button" class="secondary">تسجيل الخروج</button>
+    </div>
+    <div class="metrics">
+      <article class="metric"><span>الموظفون النشطون</span><strong id="employees-count">—</strong></article>
+      <article class="metric"><span>إجمالي سجلات البصمة</span><strong id="logs-count">—</strong></article>
+      <article class="metric"><span>حركات اليوم</span><strong id="today-count">—</strong></article>
+      <article class="metric"><span>جلسات الحضور</span><strong id="sessions-count">—</strong></article>
+    </div>
+    <section class="panel">
+      <h2>آخر حركات البصمة</h2>
+      <div class="table-wrap"><table><thead><tr><th>رقم الموظف على الجهاز</th><th>التاريخ والوقت (السعودية)</th></tr></thead><tbody id="recent-logs"></tbody></table></div>
+      <p id="dashboard-message" role="status"></p>
+    </section>
+  </section>
+</main>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
