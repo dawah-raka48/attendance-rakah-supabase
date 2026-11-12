@@ -46,8 +46,20 @@
  <article class="panel"><div class="filters"><input type="date" id="attendanceDate"><select id="shiftFilter"><option value="">كل الشفتات</option><option value="morning">صباحي</option><option value="evening">مسائي</option></select><input id="attendanceSearch" placeholder="ابحث عن موظف"></div><div class="table-wrap"><table><thead><tr><th>التاريخ</th><th>الموظف</th><th>الشفت</th><th>وقت الحضور</th><th>وقت الانصراف</th><th>الحالة</th><th>مدة التأخير</th><th>مصدر السجل</th></tr></thead><tbody id="attendanceRows"></tbody></table></div></article>
 </section>
 <section class="view" id="view-reports">
- <div class="section-toolbar"><div><h2>التقارير</h2><p>حدد الفترة والقسم والشفت لمراجعة السجلات.</p></div><button class="primary-btn" id="exportBtn">↓ تصدير CSV</button></div>
- <article class="panel"><div class="filters"><label>من تاريخ<input type="date" id="fromDate"></label><label>إلى تاريخ<input type="date" id="toDate"></label><select id="reportShift"><option value="">كل الشفتات</option><option value="morning">صباحي</option><option value="evening">مسائي</option></select><select id="reportDepartment"><option value="">كل الأقسام</option></select><button class="secondary-btn" id="runReport">تطبيق الفلتر</button></div><div class="report-summary" id="reportSummary"></div><div class="table-wrap"><table><thead><tr><th>التاريخ</th><th>الموظف</th><th>القسم</th><th>الشفت</th><th>وقت الحضور</th><th>وقت الانصراف</th><th>الحالة</th><th>مدة التأخير</th></tr></thead><tbody id="reportRows"></tbody></table></div></article>
+ <div class="section-toolbar"><div><h2>التقارير والمساءلة الإدارية</h2><p>تقارير الحضور العامة والتقرير الرسمي التفصيلي لكل موظف.</p></div><button class="primary-btn" id="exportBtn">↓ تصدير CSV</button></div>
+ <article class="panel">
+  <div class="panel-head"><div><h3>تقرير الحضور العام</h3><p>حدد الفترة والقسم والشفت لمراجعة السجلات.</p></div></div>
+  <div class="filters"><label>من تاريخ<input type="date" id="fromDate"></label><label>إلى تاريخ<input type="date" id="toDate"></label><select id="reportShift"><option value="">كل الشفتات</option><option value="morning">صباحي</option><option value="evening">مسائي</option></select><select id="reportDepartment"><option value="">كل الأقسام</option></select><button class="secondary-btn" id="runReport">تطبيق الفلتر</button></div>
+  <div class="report-summary" id="reportSummary"></div>
+  <div class="table-wrap"><table><thead><tr><th>التاريخ</th><th>الموظف</th><th>القسم</th><th>الشفت</th><th>وقت الحضور</th><th>وقت الانصراف</th><th>الحالة</th><th>مدة التأخير</th></tr></thead><tbody id="reportRows"></tbody></table></div>
+ </article>
+ <article class="panel">
+  <div class="panel-head"><div><h3>إصدار تقرير رسمي لموظف</h3><p>يشمل التأخير والغياب والانصراف المبكر والمتأخر، مع إفادة الموظف واعتماد الإدارة.</p></div></div>
+  <div class="filters"><label>الموظف<select id="officialEmployee"><option value="">اختر الموظف</option></select></label><button class="primary-btn" id="createOfficialReport">＋ إنشاء التقرير الرسمي</button></div>
+  <div id="officialReportMessage" class="report-summary">اختر الموظف والفترة بالأعلى ثم أنشئ التقرير.</div>
+  <div id="officialReportList" class="table-wrap"></div>
+  <div id="officialReportDetail"></div>
+ </article>
 </section>
 <section class="view" id="view-settings">
  <div class="section-toolbar"><div><h2>إعدادات الدوام</h2><p>المواعيد المعتمدة مبدئيًا للجمعية.</p></div><button class="primary-btn" id="saveSettings">حفظ الإعدادات</button></div>
