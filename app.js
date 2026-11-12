@@ -84,9 +84,17 @@ function buildSessions(logs) {
   const grouped=new Map();
   for(const log of logs){
     const employee=employeeForDevice(log.device_user_id);
-    const shift=shiftForPunch(log.punched_at);
-    if(!employee||!shift) continue;
-    const p=localParts(log.punched_at), date=p.year+"-"+p.month+"-"+p.day, key=employee.id+"|"+date+"|"+shift;
+    if(!employee) continue;
+    const p=localParts(log.punched_at), date=p.year+"-"+p.month+"-"+p.day;
+    const morningKey=employee.id+"|"+date+"|morning";
+    const eveningStart=data.shifts.evening?timeMinutes(data.shifts.evening.start_time):16*60;
+    const punchMinutes=Number(p.hour)*60+Number(p.minute);
+    // Once an employee has started the morning shift, keep assigning their
+    // later punches to that shift until the evening shift actually begins.
+    // This permits flexible morning checkout after 11:30 (e.g. 11:45 or 12:00).
+    const shift=(grouped.has(morningKey)&&punchMinutes<eveningStart)?"morning":shiftForPunch(log.punched_at);
+    if(!shift) continue;
+    const key=employee.id+"|"+date+"|"+shift;
     if(!grouped.has(key)) grouped.set(key,{employee,date,shift,first:log.punched_at,last:log.punched_at,count:0,lastAccepted:null,acceptedPunches:[]});
     const g=grouped.get(key), stamp=new Date(log.punched_at).getTime();
     // Collapse rapid repeated taps; the first accepted punch is entry, the next is exit.
@@ -105,8 +113,10 @@ function buildSessions(logs) {
     const exitParts=exitAt?localParts(exitAt):null;
     const exitMinutes=exitParts?Number(exitParts.hour)*60+Number(exitParts.minute):null;
     const earlyDeparture=hasExit && exitMinutes<=end-30;
-    const status=earlyDeparture?(late>0?"متأخر + انصراف مبكر":"انصراف مبكر"):hasExit?"سجل انصراف":late>0?"متأخر - لم يسجل انصراف":"حاضر - لم يسجل انصراف";
-    return {...g,firstLocal:first,lastLocal:localParts(g.last),exitAt,exitParts,hasExit,earlyDeparture,lateMinutes:late,status};
+    const lateDeparture=hasExit && exitMinutes>end;
+    const exitStatus=earlyDeparture?"انصراف مبكر":lateDeparture?"انصراف متأخر":"سجل انصراف";
+    const status=hasExit?(late>0?"متأخر + "+exitStatus:exitStatus):late>0?"متأخر - لم يسجل انصراف":"حاضر - لم يسجل انصراف";
+    return {...g,firstLocal:first,lastLocal:localParts(g.last),exitAt,exitParts,hasExit,earlyDeparture,lateDeparture,lateMinutes:late,status};
   }).sort((a,b)=>(b.date+b.first).localeCompare(a.date+a.first));
 }
 function statusBadge(status){return String(status||"").includes("متأخر")||String(status||"").includes("انصراف مبكر")?'<span class="status late">'+esc(status)+'</span>':status==="حاضر"||status==="في الموعد"||status==="سجل انصراف"?'<span class="status ok">'+esc(status)+'</span>':'<span class="status neutral">'+esc(status||"—")+'</span>';}
