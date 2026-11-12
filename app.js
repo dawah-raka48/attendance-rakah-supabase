@@ -105,11 +105,11 @@ function buildSessions(logs) {
     const exitParts=exitAt?localParts(exitAt):null;
     const exitMinutes=exitParts?Number(exitParts.hour)*60+Number(exitParts.minute):null;
     const earlyDeparture=hasExit && exitMinutes<=end-30;
-    const status=earlyDeparture?"انصراف مبكر":hasExit?"سجل انصراف":late>0?"متأخر":"حاضر - لم يسجل انصراف";
+    const status=earlyDeparture?(late>0?"متأخر + انصراف مبكر":"انصراف مبكر"):hasExit?"سجل انصراف":late>0?"متأخر - لم يسجل انصراف":"حاضر - لم يسجل انصراف";
     return {...g,firstLocal:first,lastLocal:localParts(g.last),exitAt,exitParts,hasExit,earlyDeparture,lateMinutes:late,status};
   }).sort((a,b)=>(b.date+b.first).localeCompare(a.date+a.first));
 }
-function statusBadge(status){return status==="متأخر"||status==="انصراف مبكر"?'<span class="status late">'+esc(status)+'</span>':status==="حاضر"||status==="في الموعد"||status==="سجل انصراف"?'<span class="status ok">'+esc(status)+'</span>':'<span class="status neutral">'+esc(status||"—")+'</span>';}
+function statusBadge(status){return String(status||"").includes("متأخر")||String(status||"").includes("انصراف مبكر")?'<span class="status late">'+esc(status)+'</span>':status==="حاضر"||status==="في الموعد"||status==="سجل انصراف"?'<span class="status ok">'+esc(status)+'</span>':'<span class="status neutral">'+esc(status||"—")+'</span>';}
 function timeLabel(session){return session?new Intl.DateTimeFormat("ar-SA",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:true}).format(new Date(session.first)): "—";}
 function renderDashboard(sessions) {
   const today=todaySaudi(), todayRows=sessions.filter(x=>x.date===today), people=data.employees.filter(active);
@@ -281,7 +281,7 @@ document.querySelectorAll("[data-go]").forEach(button=>button.addEventListener("
 ["attendanceDate","shiftFilter","attendanceSearch"].forEach(id=>$(id).addEventListener("change",()=>refreshAttendanceDate().catch(e=>toast(e.message))));
 $("runReport").addEventListener("click",()=>refreshReport().catch(e=>toast(e.message)));
 $("exportBtn").addEventListener("click",()=>{
-  const rows=[["التاريخ","الموظف","القسم","الفترة","أول بصمة","آخر بصمة","الحالة","التأخير بالدقائق"],...filteredReport().map(x=>[x.date,x.employee.full_name,x.employee.department,shiftName(x.shift),timeLabel(x),new Intl.DateTimeFormat("ar-SA",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:true}).format(new Date(x.last)),x.status,x.lateMinutes])];
+  const rows=[["التاريخ","الموظف","القسم","الفترة","وقت الحضور","وقت الانصراف","الحالة","التأخير بالدقائق"],...filteredReport().map(x=>[x.date,x.employee.full_name,x.employee.department,shiftName(x.shift),timeLabel(x),x.exitAt?new Intl.DateTimeFormat("ar-SA",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:true}).format(new Date(x.exitAt)):"—",x.status,x.lateMinutes])];
   const csv="\uFEFF"+rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");
   const link=document.createElement("a");link.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));link.download="attendance-report.csv";link.click();URL.revokeObjectURL(link.href);
 });
