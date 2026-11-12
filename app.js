@@ -87,20 +87,29 @@ function buildSessions(logs) {
     const shift=shiftForPunch(log.punched_at);
     if(!employee||!shift) continue;
     const p=localParts(log.punched_at), date=p.year+"-"+p.month+"-"+p.day, key=employee.id+"|"+date+"|"+shift;
-    if(!grouped.has(key)) grouped.set(key,{employee,date,shift,first:log.punched_at,last:log.punched_at,count:0,lastAccepted:null});
+    if(!grouped.has(key)) grouped.set(key,{employee,date,shift,first:log.punched_at,last:log.punched_at,count:0,lastAccepted:null,acceptedPunches:[]});
     const g=grouped.get(key), stamp=new Date(log.punched_at).getTime();
-    if(g.lastAccepted===null || stamp-g.lastAccepted>=5*60*1000){g.count++;g.lastAccepted=stamp;}
+    // Collapse rapid repeated taps; the first accepted punch is entry, the next is exit.
+    if(g.lastAccepted===null || stamp-g.lastAccepted>=5*60*1000){
+      g.count++;g.lastAccepted=stamp;g.acceptedPunches.push(log.punched_at);
+    }
     if(stamp<new Date(g.first).getTime())g.first=log.punched_at;
     if(stamp>new Date(g.last).getTime())g.last=log.punched_at;
   }
   return [...grouped.values()].map(g=>{
     const s=data.shifts[g.shift], first=localParts(g.first), mins=Number(first.hour)*60+Number(first.minute);
-    const start=timeMinutes(s.start_time), grace=Number(s.grace_minutes??5);
+    const start=timeMinutes(s.start_time), end=timeMinutes(s.end_time), grace=Number(s.grace_minutes??5);
     const late=Math.max(0,mins-(start+grace));
-    return {...g,firstLocal:first,lastLocal:localParts(g.last),lateMinutes:late,status:late>0?"متأخر":"في الموعد"};
+    const hasExit=g.acceptedPunches.length>=2;
+    const exitAt=hasExit?g.acceptedPunches[g.acceptedPunches.length-1]:null;
+    const exitParts=exitAt?localParts(exitAt):null;
+    const exitMinutes=exitParts?Number(exitParts.hour)*60+Number(exitParts.minute):null;
+    const earlyDeparture=hasExit && exitMinutes<=end-30;
+    const status=earlyDeparture?"انصراف مبكر":hasExit?"سجل انصراف":late>0?"متأخر":"حاضر - لم يسجل انصراف";
+    return {...g,firstLocal:first,lastLocal:localParts(g.last),exitAt,exitParts,hasExit,earlyDeparture,lateMinutes:late,status};
   }).sort((a,b)=>(b.date+b.first).localeCompare(a.date+a.first));
 }
-function statusBadge(status){return status==="متأخر"?'<span class="status late">متأخر</span>':status==="حاضر"||status==="في الموعد"?'<span class="status ok">في الموعد</span>':'<span class="status neutral">'+esc(status||"—")+'</span>';}
+function statusBadge(status){return status==="متأخر"||status==="انصراف مبكر"?'<span class="status late">'+esc(status)+'</span>':status==="حاضر"||status==="في الموعد"||status==="سجل انصراف"?'<span class="status ok">'+esc(status)+'</span>':'<span class="status neutral">'+esc(status||"—")+'</span>';}
 function timeLabel(session){return session?new Intl.DateTimeFormat("ar-SA",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:true}).format(new Date(session.first)): "—";}
 function renderDashboard(sessions) {
   const today=todaySaudi(), todayRows=sessions.filter(x=>x.date===today), people=data.employees.filter(active);
@@ -133,7 +142,7 @@ function renderEmployees(){
 function renderAttendance(sessions){
   const date=$("attendanceDate").value,shift=$("shiftFilter").value,q=$("attendanceSearch").value.trim().toLowerCase();
   const rows=sessions.filter(x=>(!date||x.date===date)&&(!shift||x.shift===shift)&&(!q||(x.employee.full_name+" "+x.employee.employee_code).toLowerCase().includes(q)));
-  $("attendanceRows").innerHTML=rows.map(x=>'<tr><td>'+esc(x.date)+'</td><td>'+esc(x.employee.full_name)+'</td><td>'+shiftName(x.shift)+'</td><td>'+timeLabel(x)+'</td><td>'+statusBadge(x.status)+'</td><td>'+x.lateMinutes+' دقيقة</td><td><span class="status neutral">جهاز البصمة</span></td></tr>').join("")||'<tr><td colspan="7">لا توجد سجلات في الفترة المحددة.</td></tr>';
+  $("attendanceRows").innerHTML=rows.map(x=>'<tr><td>'+esc(x.date)+'</td><td>'+esc(x.employee.full_name)+'</td><td>'+shiftName(x.shift)+'</td><td>'+timeLabel(x)+'</td><td>'+(x.exitAt?new Intl.DateTimeFormat("ar-SA",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:true}).format(new Date(x.exitAt)):"—")+'</td><td>'+statusBadge(x.status)+'</td><td>'+x.lateMinutes+' دقيقة</td><td><span class="status neutral">جهاز البصمة</span></td></tr>').join("")||'<tr><td colspan="8">لا توجد سجلات في الفترة المحددة.</td></tr>';
 }
 function filteredReport(){
   const from=$("fromDate").value,to=$("toDate").value,shift=$("reportShift").value,dep=$("reportDepartment").value;
@@ -141,8 +150,8 @@ function filteredReport(){
 }
 function renderReport(){
   const rows=filteredReport();
-  $("reportSummary").textContent="عدد جلسات الحضور: "+rows.length+" | حالات التأخير: "+rows.filter(x=>x.lateMinutes>0).length+" | الموظفون: "+new Set(rows.map(x=>x.employee.id)).size;
-  $("reportRows").innerHTML=rows.map(x=>'<tr><td>'+esc(x.date)+'</td><td>'+esc(x.employee.full_name)+'</td><td>'+esc(x.employee.department)+'</td><td>'+shiftName(x.shift)+'</td><td>'+timeLabel(x)+'</td><td>'+statusBadge(x.status)+'</td><td>'+x.lateMinutes+' دقيقة</td></tr>').join("")||'<tr><td colspan="7">لا توجد نتائج للفترة المحددة.</td></tr>';
+  $("reportSummary").textContent="عدد جلسات الحضور: "+rows.length+" | حالات التأخير: "+rows.filter(x=>x.lateMinutes>0).length+" | الانصراف المبكر: "+rows.filter(x=>x.earlyDeparture).length+" | الموظفون: "+new Set(rows.map(x=>x.employee.id)).size;
+  $("reportRows").innerHTML=rows.map(x=>'<tr><td>'+esc(x.date)+'</td><td>'+esc(x.employee.full_name)+'</td><td>'+esc(x.employee.department)+'</td><td>'+shiftName(x.shift)+'</td><td>'+timeLabel(x)+'</td><td>'+(x.exitAt?new Intl.DateTimeFormat("ar-SA",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hour12:true}).format(new Date(x.exitAt)):"—")+'</td><td>'+statusBadge(x.status)+'</td><td>'+x.lateMinutes+' دقيقة</td></tr>').join("")||'<tr><td colspan="8">لا توجد نتائج للفترة المحددة.</td></tr>';
 }
 function fillDepartments(){
   const deps=[...new Set(data.employees.map(e=>e.department).filter(Boolean))];
