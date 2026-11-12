@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.0";
 import { formatSaudiDateTime, saudiLocalDateTimeToUtcIso } from "./assets/time.js";
+import { initOfficialReports } from "./official-reports.js";
 
 const SUPABASE_URL = "https://hsryrgmoyieqqyqubtly.supabase.co";
 const SUPABASE_KEY = "sb_publishable_n1DoELV-OoMllDuSMOzuhw_Bkf5LM33";
@@ -11,6 +12,7 @@ let profile = null;
 let data = { employees: [], logs: [], shifts: { morning: null, evening: null } };
 let currentAttendance = [];
 let reportRows = [];
+let officialReports = null;
 
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 const shiftName = code => code === "morning" ? "صباحي" : "مسائي";
@@ -249,6 +251,12 @@ async function startApp(){
   $("fromDate").value=new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(last);
   $("toDate").value=todaySaudi();
   $("reportDepartment").value="";
+  if(!officialReports) officialReports=initOfficialReports({
+    supabase,getEmployees:()=>data.employees,getShifts:()=>data.shifts,
+    getReportRows:()=>reportRows,getUser:()=>currentUser,getProfile:()=>profile,
+    today:todaySaudi,toUtc:saudiLocalDateTimeToUtcIso
+  });
+  else window.refreshOfficialReportEmployees?.();
 }
 
 $("loginForm").addEventListener("submit",async event=>{
@@ -289,7 +297,7 @@ document.querySelectorAll(".nav-link").forEach(button=>button.addEventListener("
   document.querySelectorAll(".nav-link").forEach(x=>x.classList.remove("active"));button.classList.add("active");
   document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$("view-"+button.dataset.view).classList.add("active");
   $("pageTitle").textContent=button.textContent.trim();$("sidebar").classList.remove("open");
-  try{if(button.dataset.view==="attendance")await refreshAttendanceDate();if(button.dataset.view==="reports")await refreshReport();if(button.dataset.view==="employees")renderEmployees();}catch(e){toast("تعذر تحميل البيانات: "+e.message);}
+  try{if(button.dataset.view==="attendance")await refreshAttendanceDate();if(button.dataset.view==="reports"){await refreshReport();await window.loadOfficialReports?.();}if(button.dataset.view==="employees")renderEmployees();}catch(e){toast("تعذر تحميل البيانات: "+e.message);}
 }));
 document.querySelectorAll("[data-go]").forEach(button=>button.addEventListener("click",()=>document.querySelector('[data-view="'+button.dataset.go+'"]').click()));
 ["employeeSearch","departmentFilter"].forEach(id=>$(id).addEventListener("input",renderEmployees));
