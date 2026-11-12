@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>اختبار توقيت السعودية - نظام الحضور</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;padding:28px;background:#f4f6f8;color:#17212b;font-family:Tahoma,Arial,sans-serif}
+    main{max-width:760px;margin:40px auto;background:#fff;border:1px solid #e3e8ee;border-radius:18px;padding:28px;box-shadow:0 8px 30px #1020300c}
+    h1{margin-top:0;font-size:24px}.muted{color:#667085}.sample{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:24px 0}
+    .tile{padding:18px;border:1px solid #e5eaf0;border-radius:12px}.value{font-size:23px;font-weight:700;margin-top:8px;direction:ltr;text-align:right}
+    .ok{color:#087443;background:#eaf8f0;padding:12px 14px;border-radius:10px}
+    code{direction:ltr;display:block;text-align:left;background:#f4f6f8;padding:12px;border-radius:8px;overflow-wrap:anywhere}
+    @media(max-width:560px){.sample{grid-template-columns:1fr}main{margin:10px auto;padding:20px}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>اختبار عرض التوقيت بتوقيت السعودية</h1>
+  <p class="muted">هذه صفحة اختبار مستقلة. لا تعدّل سجلات البصمة في قاعدة البيانات.</p>
+  <div class="sample">
+    <section class="tile"><div class="muted">الوقت الأصلي المخزن في Supabase (UTC)</div><div class="value">2026-11-12 04:36:05 +00</div></section>
+    <section class="tile"><div class="muted">الوقت المعروض في السعودية</div><div class="value" id="saudi">جارٍ التحويل…</div></section>
+  </div>
+  <p class="ok" id="status">يتم اختبار التحويل إلى Asia/Riyadh.</p>
+  <p class="muted">القاعدة: نخزن الوقت كما هو، ونحوّله عند العرض فقط. لا نضيف 3 ساعات إلى السجلات الأصلية.</p>
+  <code>Intl.DateTimeFormat("ar-SA", { timeZone: "Asia/Riyadh" })</code>
+</main>
+<script type="module">
+  import { formatSaudiDateTime } from "./assets/time.js";
+  const value = "2026-11-12T04:36:05+00:00";
+  document.getElementById("saudi").textContent = formatSaudiDateTime(value);
+  document.getElementById("status").textContent = "تم التحويل بنجاح. يجب أن يظهر الوقت المحلي بعد إضافة فرق المنطقة الزمنية.";
+</script>
+</body>
+</html>
