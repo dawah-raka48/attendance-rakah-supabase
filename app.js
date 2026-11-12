@@ -153,9 +153,31 @@ async function refreshBase(){
   fillDepartments();
   const today=todaySaudi(), logs=await loadLogs(today,today);
   const sessions=buildSessions(logs);
-  renderDashboard(sessions); currentAttendance=sessions;
-  renderAttendance(sessions);
+  currentAttendance=sessions;
+  renderDashboard(sessions);
+  if ($("attendanceDate").value === today || !$("attendanceDate").value) {
+    $("attendanceDate").value=today;
+    renderAttendance(sessions);
+  }
   loadSettingsForm();
+}
+
+// Refresh attendance data automatically while the user is signed in.
+// A punch is attendance immediately; the system does not wait for an exit punch.
+let refreshInProgress = false;
+async function autoRefreshAttendance(){
+  if (!currentUser || refreshInProgress || document.hidden) return;
+  refreshInProgress = true;
+  try {
+    await refreshBase();
+    const activeView = document.querySelector(".nav-link.active")?.dataset.view;
+    if (activeView === "attendance") await refreshAttendanceDate();
+    if (activeView === "reports") await refreshReport();
+  } catch (error) {
+    console.error("Automatic attendance refresh failed:", error);
+  } finally {
+    refreshInProgress = false;
+  }
 }
 async function refreshAttendanceDate(){
   const date=$("attendanceDate").value||todaySaudi();
@@ -256,6 +278,9 @@ $("exportBtn").addEventListener("click",()=>{
 });
 $("attendanceDate").value=todaySaudi();
 tick();setInterval(tick,1000);
+// Check for new device punches every 30 seconds without requiring a page reload.
+setInterval(autoRefreshAttendance,30000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden) autoRefreshAttendance();});
 supabase.auth.getSession().then(async({data:sessionData})=>{
   if(!sessionData.session)return;
   try{await loadProfile(sessionData.session.user);await startApp();}
